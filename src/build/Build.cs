@@ -25,10 +25,10 @@ class Build : NukeBuild
 
     
 
-    [Solution("src/ChromeRuntimeDownloader.sln")] readonly Solution Solution;
+    [Solution("src/NugetComposer.sln")] readonly Solution Solution;
 
     Project CrdProject =>
-        Solution.GetProject("ChromeRuntimeDownloader").NotNull();
+        Solution.GetProject("NugetComposer").NotNull();
 
 
     AbsolutePath SourceDir => RootDirectory / "src";
