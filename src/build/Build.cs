@@ -37,7 +37,7 @@ class Build : NukeBuild
     AbsolutePath DevDir => RootDirectory / "dev";
     AbsolutePath TmpBuild => TemporaryDirectory / "build";
     AbsolutePath LibzPath => ToolsDir / "LibZ.Tool" / "tools" / "libz.exe";
-    AbsolutePath NugetPath => ToolsDir / "nuget.exe";
+    AbsolutePath NugetPath => ToolsDir / "nuget" / "nuget.exe";
 
     MagicVersion MagicVersion => MagicVersionFactory.Make(1, 0, 0,
         BuildCounter,
@@ -144,7 +144,7 @@ class Build : NukeBuild
 
             using (var process = ProcessTasks.StartProcess(
                 LibzPath,
-                "inject-dll --assembly ChromeRuntimeDownloader.exe --include *.dll --move",
+                "inject-dll --assembly NugetComposer.exe --include *.dll --move",
                 margeOut))
             {
                 process.AssertWaitForExit();
@@ -153,5 +153,24 @@ class Build : NukeBuild
             }
         });
 
-    public static int Main() => Execute<Build>(x => x.Information);
+
+    Target CopyToReady => _ => _
+        .DependsOn(Marge)
+        .Executes(() =>
+
+        {
+            var margeOut = TmpBuild / CommonDir.Merge /
+                           CrdProject.Name;
+
+            var readyOut = TmpBuild / CommonDir.Ready/
+                           CrdProject.Name;
+
+
+            EnsureExistingDirectory(readyOut);
+            CopyFile(margeOut / "NugetComposer.exe", readyOut / "nuget-composer.exe");
+
+        });
+
+
+    public static int Main() => Execute<Build>(x => x.CopyToReady);
 }
