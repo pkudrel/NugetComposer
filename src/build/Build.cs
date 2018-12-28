@@ -1,14 +1,13 @@
 using System;
 using Helpers;
 using Helpers.MagicVersionService;
-using NuGet.Common;
 using Nuke.Common;
-using Nuke.Common.Git;
 using Nuke.Common.ProjectModel;
 using Nuke.Common.Tooling;
-using Nuke.Common.Tools.GitVersion;
 using Nuke.Common.Tools.MSBuild;
 using Nuke.Common.Tools.NuGet;
+using Nuke.Common.Utilities.Collections;
+using static Nuke.Common.Tools.NuGet.NuGetTasks;
 using static Nuke.Common.EnvironmentInfo;
 using static Nuke.Common.IO.FileSystemTasks;
 using static Nuke.Common.IO.PathConstruction;
@@ -23,11 +22,10 @@ class Build : NukeBuild
     [Parameter("Configuration to build - Default is 'Debug' (local) or 'Release' (server)")]
     readonly string Configuration = IsLocalBuild ? "Debug" : "Release";
 
-    
 
     [Solution("src/NugetComposer.sln")] readonly Solution Solution;
 
-    Project CrdProject =>
+    Project MainProject =>
         Solution.GetProject("NugetComposer").NotNull();
 
 
@@ -38,6 +36,7 @@ class Build : NukeBuild
     AbsolutePath TmpBuild => TemporaryDirectory / "build";
     AbsolutePath LibzPath => ToolsDir / "LibZ.Tool" / "tools" / "libz.exe";
     AbsolutePath NugetPath => ToolsDir / "nuget" / "nuget.exe";
+    AbsolutePath SevenZipPath => ToolsDir / "7-Zip.CommandLine" / "tools" / "7za.exe";
 
     MagicVersion MagicVersion => MagicVersionFactory.Make(1, 0, 0,
         BuildCounter,
@@ -53,13 +52,7 @@ class Build : NukeBuild
             Logger.Info($"Version: {b.SemVersion}");
             Logger.Info($"Version: {b.InformationalVersion}");
             Logger.Info($"Version: {b.GitCommitsCurrentBranchFirstParent}");
-
-
-
-            
-
-            
-
+            SetVariable("NUGET_EXE", NugetPath);
         });
 
 
@@ -67,7 +60,6 @@ class Build : NukeBuild
         .DependsOn(Information)
         .Executes(() =>
         {
-           
             Downloader.DownloadIfNotExists("https://dist.nuget.org/win-x86-commandline/latest/nuget.exe", NugetPath,
                 "Nuget");
             var toolsNugetFile = ToolsDir / "packages.config";
@@ -95,7 +87,6 @@ class Build : NukeBuild
         .DependsOn(Clean)
         .Executes(() =>
         {
-        
             using (var process = ProcessTasks.StartProcess(
                 NugetPath,
                 $"restore  {Solution.Path}",
@@ -113,7 +104,7 @@ class Build : NukeBuild
 
         {
             var buildOut = TmpBuild / CommonDir.Build /
-                           CrdProject.Name;
+                           MainProject.Name;
             EnsureExistingDirectory(buildOut);
 
             MSBuild(s => s
@@ -135,9 +126,9 @@ class Build : NukeBuild
 
         {
             var buildOut = TmpBuild / CommonDir.Build /
-                           CrdProject.Name;
+                           MainProject.Name;
             var margeOut = TmpBuild / CommonDir.Merge /
-                           CrdProject.Name;
+                           MainProject.Name;
 
             EnsureExistingDirectory(margeOut);
             CopyDirectoryRecursively(buildOut, margeOut);
@@ -160,17 +151,60 @@ class Build : NukeBuild
 
         {
             var margeOut = TmpBuild / CommonDir.Merge /
-                           CrdProject.Name;
+                           MainProject.Name;
 
-            var readyOut = TmpBuild / CommonDir.Ready/
-                           CrdProject.Name;
+            var readyOut = TmpBuild / CommonDir.Ready /
+                           MainProject.Name;
 
 
             EnsureExistingDirectory(readyOut);
             CopyFile(margeOut / "NugetComposer.exe", readyOut / "nuget-composer.exe");
-
         });
 
+    Target MakeNuget => _ => _
+        .DependsOn(CopyToReady)
+        .Executes(() =>
+        {
+            var nugetOut = TmpBuild / CommonDir.Nuget / MainProject.Name;
 
-    public static int Main() => Execute<Build>(x => x.CopyToReady);
+            var readyOut = TmpBuild / CommonDir.Ready /
+                           MainProject.Name;
+
+            var scaffoldDir = TmpBuild / "nuget-scaffold" / MainProject.Name;
+            var scaffoldToolDir = scaffoldDir / "tools";
+
+
+            EnsureExistingDirectory(scaffoldDir);
+            EnsureExistingDirectory(nugetOut);
+            EnsureExistingDirectory(readyOut);
+            EnsureExistingDirectory(scaffoldToolDir);
+            CopyDirectoryRecursively(readyOut, scaffoldToolDir);
+
+
+            GlobFiles(SourceDir / "build" / "nuget", "*.nuspec")
+                .ForEach(x => NuGetPack(s => s
+                    .SetTargetPath(x)
+                    .SetConfiguration(Configuration)
+                    .SetVersion(MagicVersion.NugetVersion)
+                    .SetProperty("currentyear", DateTime.Now.Year.ToString())
+                    .SetBasePath(scaffoldDir)
+                    .SetOutputDirectory(nugetOut)
+                    .EnableNoPackageAnalysis()));
+        });
+
+    Target MakeZip => _ => _
+        .DependsOn(MakeNuget)
+        .Executes(() =>
+        {
+            var readyOut = TmpBuild / CommonDir.Ready / MainProject.Name;
+            var zipOut = TmpBuild / CommonDir.Zip / MainProject.Name;
+            EnsureExistingDirectory(zipOut);
+            var filename = $"{MainProject.Name}-{MagicVersion.SemVersion}.zip";
+            var zipFullOut = zipOut / filename;
+
+            var process = ProcessTasks.StartProcess(SevenZipPath, $" a {zipFullOut} .\\*", readyOut);
+            process?.WaitForExit();
+        });
+
+    public static int Main() => Execute<Build>(x => x.MakeZip);
 }

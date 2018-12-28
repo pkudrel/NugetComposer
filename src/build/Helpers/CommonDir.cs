@@ -21,6 +21,7 @@ namespace Helpers
         public static CommonDir Merge { get; } = new CommonDir("merge");
         public static CommonDir Nuget { get; } = new CommonDir("nuget");
         public static CommonDir Ready { get; } = new CommonDir("ready");
+        public static CommonDir Zip { get; } = new CommonDir("zip");
         
 
         public static PathConstruction.AbsolutePath operator /(
