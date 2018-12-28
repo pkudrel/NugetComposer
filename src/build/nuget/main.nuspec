@@ -1,0 +1,19 @@
+﻿<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>DenebLab.NugetComposer</id>
+    <title>NugetComposer</title>
+    <version>$version$</version>
+    <authors>DenebLab</authors>
+    <owners>DenebLab</owners>
+    <licenseUrl>http://www.deneblab.com/</licenseUrl>
+    <projectUrl>http://www.deneblab.com/</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Download, extract and compose nuget files</description>
+    <summary>Download, extract and compose nuget files</summary>
+    <tags>nuget download</tags>
+    <releaseNotes>$releasenotes$</releaseNotes>
+    <iconUrl>http://resharper-plugins.jetbrains.com/Content/Images/packageReSharper.png</iconUrl>
+    <copyright>Copyright $currentyear$ DenebLab</copyright>
+  </metadata>
+</package>
