@@ -12,7 +12,7 @@ namespace AbcVersionTool
         const string _CONFIG_FILE = ".abcversion.json";
         static readonly PathConstruction.AbsolutePath _rootPath = NukeBuild.RootDirectory;
         static readonly PathConstruction.AbsolutePath _configPath = _rootPath / _CONFIG_FILE;
-        static readonly DateTime DateTime = DateTime.UtcNow;
+        static readonly DateTime _dateTime = DateTime.UtcNow;
 
         public static AbcVersion Create()
         {
@@ -54,7 +54,7 @@ namespace AbcVersionTool
         static AbcVersion GetBaseAbcVersion()
         {
             var data = GitTool.GetAllGitData();
-            var simple = new AbcVersionSimple(0, 0, 0, "", 0, DateTime, "");
+            var simple = new AbcVersionSimple(0, 0, 0, "", 0, _dateTime, "");
             var baseVersion = new AbcVersion(data, simple);
             return baseVersion;
         }
