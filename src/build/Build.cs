@@ -1,6 +1,8 @@
 using System;
+using AbcVersion;
 using Helpers;
 using Helpers.MagicVersionService;
+using NuGet.Versioning;
 using Nuke.Common;
 using Nuke.Common.ProjectModel;
 using Nuke.Common.Tooling;
@@ -47,6 +49,9 @@ class Build : NukeBuild
     Target Information => _ => _
         .Executes(() =>
         {
+
+            AbcLoader.Read(RootDirectory);
+
             var b = MagicVersion;
             Logger.Info($"Host: {Host}");
             Logger.Info($"Version: {b.SemVersion}");
@@ -201,9 +206,10 @@ class Build : NukeBuild
             EnsureExistingDirectory(zipOut);
             var filename = $"{MainProject.Name}-{MagicVersion.SemVersion}.zip";
             var zipFullOut = zipOut / filename;
-
             var process = ProcessTasks.StartProcess(SevenZipPath, $" a {zipFullOut} .\\*", readyOut);
             process?.WaitForExit();
+
+            
         });
 
     public static int Main() => Execute<Build>(x => x.MakeZip);
