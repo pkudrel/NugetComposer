@@ -50,7 +50,7 @@ namespace AbcVersionTool
             }
 
 
-            return baseVersion;
+            
         }
 
         private static AbcVersion GetBaseAbcVersion()
@@ -61,7 +61,7 @@ namespace AbcVersionTool
             return baseVersion;
         }
 
-        public static Config Read()
+        static Config Read()
         {
             if (File.Exists(_configPath) == false)
             {

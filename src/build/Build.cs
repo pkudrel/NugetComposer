@@ -1,5 +1,6 @@
 using System;
 using AbcVersion;
+using AbcVersionTool;
 using Helpers;
 using Helpers.MagicVersionService;
 using NuGet.Versioning;
@@ -46,12 +47,20 @@ class Build : NukeBuild
         BuildDate,
         MachineName);
 
+    Target AbcVersionTarget => _ => _
+        .Executes(() =>
+        {
+
+            var v = AbcVersionFactory.Create();
+            Logger.Info(v.InformationalVersion);
+        });
+
+
     Target Information => _ => _
         .Executes(() =>
         {
 
-            AbcLoader.Read(RootDirectory);
-
+          
             var b = MagicVersion;
             Logger.Info($"Host: {Host}");
             Logger.Info($"Version: {b.SemVersion}");
@@ -212,5 +221,5 @@ class Build : NukeBuild
             
         });
 
-    public static int Main() => Execute<Build>(x => x.MakeZip);
+    public static int Main() => Execute<Build>(x => x.AbcVersionTarget);
 }
