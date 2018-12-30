@@ -143,7 +143,11 @@ namespace AbcVersion
 
         public static int GetCommitNumberCurrentBranchFirstParent(string sinceSha)
         {
+            var command = $"rev-list {sinceSha}..HEAD --count --first-parent";
+            var commandFull = $"git {command}";
+            Logger.Info(commandFull);
             var text = RunGenericCommandReturnText($"rev-list {sinceSha}..HEAD --count --first-parent");
+            
             try
             {
                 var number = int.Parse(text);

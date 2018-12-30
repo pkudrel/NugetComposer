@@ -16,10 +16,10 @@ namespace AbcVersionTool
 
         public static AbcVersion Create()
         {
-           var config = Read();
+            var config = Read();
 
-           var data = GitTool.GetAllGitData();
-           var baseVersion=  GetBaseAbcVersion();
+            var data = GitTool.GetAllGitData();
+            var baseVersion = GetBaseAbcVersion();
 
             var ver = CalculateVersion(baseVersion, data, config);
             return ver;
@@ -33,27 +33,25 @@ namespace AbcVersionTool
                 var configBranch = config.Branches[branch];
                 var firstParentNumber = GitTool.GetCommitNumberCurrentBranchFirstParent(configBranch.ParentSha);
                 var sem = SemVersion.Parse(configBranch.Version);
-                var patchNewValue = sem.Patch + firstParentNumber;
+                var patchNewValue = sem.Patch + firstParentNumber - 1;
+                var pathNewValue2 = patchNewValue < 0 ? 0 : patchNewValue;
                 var simple = new AbcVersionSimple(sem.Major, sem.Minor,
-                    patchNewValue, 
+                    pathNewValue2,
                     baseVersion.Special, baseVersion.BuildCounter, baseVersion.DateTime, baseVersion.Env);
                 return new AbcVersion(data, simple);
-
             }
             else
             {
                 var firstParentNumber = data.GitCommitsCurrentBranchFirstParent;
                 var simple = new AbcVersionSimple(baseVersion.Major, baseVersion.Minor,
-                    firstParentNumber, baseVersion.Special, baseVersion.BuildCounter, baseVersion.DateTime, baseVersion.Env);
+                    firstParentNumber, baseVersion.Special, baseVersion.BuildCounter, baseVersion.DateTime,
+                    baseVersion.Env);
 
-                return new AbcVersion(data,simple);
+                return new AbcVersion(data, simple);
             }
-
-
-            
         }
 
-        private static AbcVersion GetBaseAbcVersion()
+        static AbcVersion GetBaseAbcVersion()
         {
             var data = GitTool.GetAllGitData();
             var simple = new AbcVersionSimple(0, 0, 0, "", 0, DateTime, "");
