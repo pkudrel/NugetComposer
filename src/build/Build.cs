@@ -1,9 +1,6 @@
 using System;
-using AbcVersion;
 using AbcVersionTool;
 using Helpers;
-using Helpers.MagicVersionService;
-using NuGet.Versioning;
 using Nuke.Common;
 using Nuke.Common.ProjectModel;
 using Nuke.Common.Tooling;
@@ -20,13 +17,16 @@ class Build : NukeBuild
 {
     [Parameter("Build counter from outside environment")] readonly int BuildCounter;
 
-    readonly DateTime BuildDate = DateTime.UtcNow;
+    static readonly DateTime _buildDate = DateTime.UtcNow;
 
     [Parameter("Configuration to build - Default is 'Debug' (local) or 'Release' (server)")]
     readonly string Configuration = IsLocalBuild ? "Debug" : "Release";
 
 
     [Solution("src/NugetComposer.sln")] readonly Solution Solution;
+
+
+    AbcVersion Version => AbcVersionFactory.Create(BuildCounter, _buildDate);
 
     Project MainProject =>
         Solution.GetProject("NugetComposer").NotNull();
@@ -41,27 +41,17 @@ class Build : NukeBuild
     AbsolutePath NugetPath => ToolsDir / "nuget" / "nuget.exe";
     AbsolutePath SevenZipPath => ToolsDir / "7-Zip.CommandLine" / "tools" / "7za.exe";
 
-    MagicVersion MagicVersion => MagicVersionFactory.Make(1, 0, 0,
-        BuildCounter,
-        MagicVersionStrategy.PatchFromGitCommitsCurrentBranchFirstParent,
-        BuildDate,
-        MachineName);
-
     Target AbcVersionTarget => _ => _
         .Executes(() =>
         {
-
-            var v = AbcVersionFactory.Create();
-            Logger.Info(v.InformationalVersion);
+            Logger.Info(Version.InformationalVersion);
         });
 
 
     Target Information => _ => _
         .Executes(() =>
         {
-
-          
-            var b = MagicVersion;
+            var b = Version;
             Logger.Info($"Host: {Host}");
             Logger.Info($"Version: {b.SemVersion}");
             Logger.Info($"Version: {b.InformationalVersion}");
@@ -127,9 +117,9 @@ class Build : NukeBuild
                 .SetOutDir(buildOut)
                 .SetVerbosity(MSBuildVerbosity.Quiet)
                 .SetConfiguration(Configuration)
-                .SetAssemblyVersion(MagicVersion.AssemblyVersion)
-                .SetFileVersion(MagicVersion.FileVersion)
-                .SetInformationalVersion(MagicVersion.InformationalVersion)
+                .SetAssemblyVersion(Version.AssemblyVersion)
+                .SetFileVersion(Version.FileVersion)
+                .SetInformationalVersion(Version.InformationalVersion)
                 .SetMaxCpuCount(Environment.ProcessorCount)
                 .SetNodeReuse(IsLocalBuild));
         });
@@ -199,7 +189,7 @@ class Build : NukeBuild
                 .ForEach(x => NuGetPack(s => s
                     .SetTargetPath(x)
                     .SetConfiguration(Configuration)
-                    .SetVersion(MagicVersion.NugetVersion)
+                    .SetVersion(Version.NugetVersion)
                     .SetProperty("currentyear", DateTime.Now.Year.ToString())
                     .SetBasePath(scaffoldDir)
                     .SetOutputDirectory(nugetOut)
@@ -213,13 +203,11 @@ class Build : NukeBuild
             var readyOut = TmpBuild / CommonDir.Ready / MainProject.Name;
             var zipOut = TmpBuild / CommonDir.Zip / MainProject.Name;
             EnsureExistingDirectory(zipOut);
-            var filename = $"{MainProject.Name}-{MagicVersion.SemVersion}.zip";
+            var filename = $"{MainProject.Name}-{Version.SemVersion}.zip";
             var zipFullOut = zipOut / filename;
             var process = ProcessTasks.StartProcess(SevenZipPath, $" a {zipFullOut} .\\*", readyOut);
             process?.WaitForExit();
-
-            
         });
 
-    public static int Main() => Execute<Build>(x => x.AbcVersionTarget);
+    public static int Main() => Execute<Build>(x => x.MakeZip);
 }

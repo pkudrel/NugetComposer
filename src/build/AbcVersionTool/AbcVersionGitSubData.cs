@@ -1,4 +1,4 @@
-﻿namespace AbcVersion
+﻿namespace AbcVersionTool
 {
     public class AbcVersionGitSubData
     {
